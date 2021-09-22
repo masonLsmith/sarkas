@@ -22,23 +22,28 @@ def update_params(potential, params):
     potential.screening_charges = np.array(potential.screening_charges)
     params_len = len(potential.screening_lengths)
 
-    moliere_matrix = np.zeros((2 * params_len + 1, params.num_species, params.num_species))
+    moliere_matrix = np.zeros(
+        (2 * params_len + 1, params.num_species, params.num_species)
+    )
 
     for i, q1 in enumerate(params.species_charges):
         for j, q2 in enumerate(params.species_charges):
 
             moliere_matrix[0, i, j] = q1 * q2 / params.fourpie0
-            moliere_matrix[1:params_len + 1, i, j] = potential.screening_charges
-            moliere_matrix[params_len + 1:, i, j] = potential.screening_lengths
+            moliere_matrix[1 : params_len + 1, i, j] = potential.screening_charges
+            moliere_matrix[params_len + 1 :, i, j] = potential.screening_lengths
 
     potential.matrix = moliere_matrix
     potential.force = moliere_force
 
     # Force error calculated from eq.(43) in Ref.[1]_
-    params.force_error = np.sqrt(2.0 * np.pi / potential.screening_lengths.min()) \
-                    * np.exp(- potential.rc / potential.screening_lengths.min())
+    params.force_error = np.sqrt(
+        2.0 * np.pi / potential.screening_lengths.min()
+    ) * np.exp(-potential.rc / potential.screening_lengths.min())
     # Renormalize
-    params.force_error *= params.a_ws ** 2 * np.sqrt(params.total_num_ptcls / params.pbox_volume)
+    params.force_error *= params.a_ws ** 2 * np.sqrt(
+        params.total_num_ptcls / params.pbox_volume
+    )
 
 
 @nb.njit

@@ -23,12 +23,12 @@ def update_params(potential, params):
     twopi = 2.0 * np.pi
 
     # lambda factor : 1 = von Weizsaecker, 1/9 = Thomas-Fermi
-    if not hasattr(potential, 'lmbda'):
+    if not hasattr(potential, "lmbda"):
         potential.lmbda = 1.0 / 9.0
 
     fdint_dfdk_vec = np.vectorize(fdint.dfdk)
     # eq. (14) of Ref. [1]_
-    params.nu = 3.0/np.pi ** 1.5 * params.landau_length / params.lambda_deB
+    params.nu = 3.0 / np.pi ** 1.5 * params.landau_length / params.lambda_deB
     params.nu *= potential.lmbda * fdint_dfdk_vec(k=-0.5, phi=params.eta_e)
 
     # Degeneracy Parameter
@@ -42,13 +42,20 @@ def update_params(potential, params):
         # eq. (32) of Ref. [1]_
         h = Ntheta / Dtheta * np.tanh(1.0 / theta)
         # grad h(x)
-        gradh = (-(Ntheta / Dtheta) / np.cosh(1 / theta) ** 2 / (theta ** 2)  # derivative of tanh(1/x)
-                 - np.tanh(1.0 / theta) * (
-                         Ntheta * (7.8862 * theta + 31.6552 * theta ** 3) / Dtheta ** 2  # derivative of 1/Dtheta
-                         + (5.6686 * theta - 0.6453 * theta ** 2 + 21.1036 * theta ** 3) / Dtheta) # derivative of Ntheta
-                 )
+        gradh = -(Ntheta / Dtheta) / np.cosh(1 / theta) ** 2 / (
+            theta ** 2
+        ) - np.tanh(  # derivative of tanh(1/x)
+            1.0 / theta
+        ) * (
+            Ntheta
+            * (7.8862 * theta + 31.6552 * theta ** 3)
+            / Dtheta ** 2  # derivative of 1/Dtheta
+            + (5.6686 * theta - 0.6453 * theta ** 2 + 21.1036 * theta ** 3) / Dtheta
+        )  # derivative of Ntheta
         # eq.(31) of Ref. [1]_
-        b = 1.0 - 2.0 / ( 8.0 * (params.kF * params.lambda_TF)**2) * (h - 2.0 * theta * gradh)
+        b = 1.0 - 2.0 / (8.0 * (params.kF * params.lambda_TF) ** 2) * (
+            h - 2.0 * theta * gradh
+        )
     else:
         b = 1.0
 
@@ -57,15 +64,23 @@ def update_params(potential, params):
     # Monotonic decay
     if params.nu <= 1:
         # eq. (29) of Ref. [1]_
-        params.lambda_p = params.lambda_TF * np.sqrt(params.nu / (2.0 * b + 2.0 * np.sqrt(b ** 2 - params.nu)))
-        params.lambda_m = params.lambda_TF * np.sqrt(params.nu / (2.0 * b - 2.0 * np.sqrt(b ** 2 - params.nu)))
+        params.lambda_p = params.lambda_TF * np.sqrt(
+            params.nu / (2.0 * b + 2.0 * np.sqrt(b ** 2 - params.nu))
+        )
+        params.lambda_m = params.lambda_TF * np.sqrt(
+            params.nu / (2.0 * b - 2.0 * np.sqrt(b ** 2 - params.nu))
+        )
         params.alpha = b / np.sqrt(b - params.nu)
 
     # Oscillatory behavior
     if params.nu > 1:
         # eq. (29) of Ref. [1]_
-        params.gamma_m = params.lambda_TF * np.sqrt(params.nu / (np.sqrt(params.nu) - b))
-        params.gamma_p = params.lambda_TF * np.sqrt(params.nu / (np.sqrt(params.nu) + b))
+        params.gamma_m = params.lambda_TF * np.sqrt(
+            params.nu / (np.sqrt(params.nu) - b)
+        )
+        params.gamma_p = params.lambda_TF * np.sqrt(
+            params.nu / (np.sqrt(params.nu) + b)
+        )
         params.alphap = b / np.sqrt(params.nu - b)
 
     potential.matrix = np.zeros((6, params.num_species, params.num_species))
@@ -78,8 +93,8 @@ def update_params(potential, params):
 
             if params.nu <= 1:
                 potential.matrix[0, i, j] = q1 * q2 / (2.0 * params.fourpie0)
-                potential.matrix[2, i, j] = (1.0 + params.alpha)
-                potential.matrix[3, i, j] = (1.0 - params.alpha)
+                potential.matrix[2, i, j] = 1.0 + params.alpha
+                potential.matrix[3, i, j] = 1.0 - params.alpha
                 potential.matrix[4, i, j] = 1.0 / params.lambda_m
                 potential.matrix[5, i, j] = 1.0 / params.lambda_p
 
@@ -93,9 +108,13 @@ def update_params(potential, params):
     assert potential.method == "PP", "P3M Algorithm not implemented yet. Good Bye!"
 
     potential.force = egs_force
-    params.force_error = np.sqrt(twopi / params.lambda_TF) * np.exp(-potential.rc / params.lambda_TF)
+    params.force_error = np.sqrt(twopi / params.lambda_TF) * np.exp(
+        -potential.rc / params.lambda_TF
+    )
     # Renormalize
-    params.force_error *= params.a_ws ** 2 * np.sqrt(params.total_num_ptcls / params.pbox_volume)
+    params.force_error *= params.a_ws ** 2 * np.sqrt(
+        params.total_num_ptcls / params.pbox_volume
+    )
 
 
 @njit

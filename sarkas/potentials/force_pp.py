@@ -5,6 +5,7 @@ Module for handling Particle-Particle interaction.
 import numpy as np
 from numba import njit
 
+
 @njit
 def update_0D(pos, id_ij, mass_ij, Lv, rc, potential_matrix, force, measure, rdf_hist):
     """
@@ -50,7 +51,7 @@ def update_0D(pos, id_ij, mass_ij, Lv, rc, potential_matrix, force, measure, rdf
 
     """
     L = Lv[0]
-    Lh = L / 2.
+    Lh = L / 2.0
     N = pos.shape[0]  # Number of particles
 
     U_s_r = 0.0  # Short-ranges potential energy accumulator
@@ -61,9 +62,9 @@ def update_0D(pos, id_ij, mass_ij, Lv, rc, potential_matrix, force, measure, rdf
 
     for i in range(N):
         for j in range(i + 1, N):
-            dx = (pos[i, 0] - pos[j, 0])
-            dy = (pos[i, 1] - pos[j, 1])
-            dz = (pos[i, 2] - pos[j, 2])
+            dx = pos[i, 0] - pos[j, 0]
+            dy = pos[i, 1] - pos[j, 1]
+            dz = pos[i, 2] - pos[j, 2]
 
             if dx >= Lh:
                 dx = L - dx
@@ -120,7 +121,9 @@ def update_0D(pos, id_ij, mass_ij, Lv, rc, potential_matrix, force, measure, rdf
 
 
 @njit
-def update(pos, p_id, p_mass, box_lengths, rc, potential_matrix, force, measure, rdf_hist):
+def update(
+    pos, p_id, p_mass, box_lengths, rc, potential_matrix, force, measure, rdf_hist
+):
     """
     Update the force on the particles based on a linked cell-list (LCL) algorithm.
 
@@ -213,7 +216,11 @@ def update(pos, p_id, p_mass, box_lengths, rc, potential_matrix, force, measure,
             for cz in range(cells_per_dim[2]):
 
                 # Compute the cell in 3D volume
-                c = cx + cy * cells_per_dim[0] + cz * cells_per_dim[0] * cells_per_dim[1]
+                c = (
+                    cx
+                    + cy * cells_per_dim[0]
+                    + cz * cells_per_dim[0] * cells_per_dim[1]
+                )
 
                 # Loop over all cell pairs (N-1 and N+1)
                 for cz_N in range(cz - 1, cz + 2):
@@ -229,8 +236,16 @@ def update(pos, p_id, p_mass, box_lengths, rc, potential_matrix, force, measure,
                     # else:
                     #     cz_shift = 0
                     #     rshift[2] = 0.0
-                    cz_shift = 0 + cells_per_dim[2] * (cz_N < 0) - cells_per_dim[2] * (cz_N >= cells_per_dim[2])
-                    rshift[2] = 0.0 - box_lengths[2] * (cz_N < 0) + box_lengths[2]*(cz_N >= cells_per_dim[2])
+                    cz_shift = (
+                        0
+                        + cells_per_dim[2] * (cz_N < 0)
+                        - cells_per_dim[2] * (cz_N >= cells_per_dim[2])
+                    )
+                    rshift[2] = (
+                        0.0
+                        - box_lengths[2] * (cz_N < 0)
+                        + box_lengths[2] * (cz_N >= cells_per_dim[2])
+                    )
 
                     for cy_N in range(cy - 1, cy + 2):
                         # y cells
@@ -245,8 +260,16 @@ def update(pos, p_id, p_mass, box_lengths, rc, potential_matrix, force, measure,
                         #     cy_shift = 0
                         #     rshift[1] = 0.0
 
-                        cy_shift = 0 + cells_per_dim[1] * (cy_N < 0) - cells_per_dim[1] * (cy_N >= cells_per_dim[1])
-                        rshift[1] = 0.0 - box_lengths[1] * (cy_N < 0) + box_lengths[1] * (cy_N >= cells_per_dim[1])
+                        cy_shift = (
+                            0
+                            + cells_per_dim[1] * (cy_N < 0)
+                            - cells_per_dim[1] * (cy_N >= cells_per_dim[1])
+                        )
+                        rshift[1] = (
+                            0.0
+                            - box_lengths[1] * (cy_N < 0)
+                            + box_lengths[1] * (cy_N >= cells_per_dim[1])
+                        )
 
                         for cx_N in range(cx - 1, cx + 2):
                             # x cells
@@ -261,12 +284,25 @@ def update(pos, p_id, p_mass, box_lengths, rc, potential_matrix, force, measure,
                             #     cx_shift = 0
                             #     rshift[0] = 0.0
 
-                            cx_shift = 0 + cells_per_dim[0] * (cx_N < 0) - cells_per_dim[0] * (cx_N >= cells_per_dim[0])
-                            rshift[0] = 0.0 - box_lengths[0] * (cx_N < 0) + box_lengths[0] * (cx_N >= cells_per_dim[0])
+                            cx_shift = (
+                                0
+                                + cells_per_dim[0] * (cx_N < 0)
+                                - cells_per_dim[0] * (cx_N >= cells_per_dim[0])
+                            )
+                            rshift[0] = (
+                                0.0
+                                - box_lengths[0] * (cx_N < 0)
+                                + box_lengths[0] * (cx_N >= cells_per_dim[0])
+                            )
 
                             # Compute the location of the N-th cell based on shifts
-                            c_N = (cx_N + cx_shift) + (cy_N + cy_shift) * cells_per_dim[0] \
-                                  + (cz_N + cz_shift) * cells_per_dim[0] * cells_per_dim[1]
+                            c_N = (
+                                (cx_N + cx_shift)
+                                + (cy_N + cy_shift) * cells_per_dim[0]
+                                + (cz_N + cz_shift)
+                                * cells_per_dim[0]
+                                * cells_per_dim[1]
+                            )
 
                             i = head[c]
                             # First compute interaction of head particle with neighboring cell head particles
@@ -290,11 +326,15 @@ def update(pos, p_id, p_mass, box_lengths, rc, potential_matrix, force, measure,
                                         r = np.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
 
                                         if measure and int(r / dr_rdf) < rdf_nbins:
-                                            rdf_hist[int(r / dr_rdf), p_id[i], p_id[j]] += 1
+                                            rdf_hist[
+                                                int(r / dr_rdf), p_id[i], p_id[j]
+                                            ] += 1
 
                                         # If below the cutoff radius, compute the force
                                         if r < rc:
-                                            p_matrix = potential_matrix[:, p_id[i], p_id[j]]
+                                            p_matrix = potential_matrix[
+                                                :, p_id[i], p_id[j]
+                                            ]
 
                                             # Compute the short-ranged force
                                             pot, fr = force(r, p_matrix)

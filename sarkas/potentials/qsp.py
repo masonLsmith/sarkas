@@ -6,12 +6,12 @@ Note
 Notice that in Ref. [Hansen1981]_ the DeBroglie wavelength is defined as
 
 .. math::
-   \lambda_{ee} = \dfrac{\hbar}{\sqrt{2 \pi \mu_{ee} k_{B} T} },
+   \\lambda_{ee} = \\dfrac{\\hbar}{\\sqrt{2 \\pi \\mu_{ee} k_{B} T} },
 
 while in statistical physics textbooks and Ref. [Glosli2008]_ is defined as
 
 .. math::
-   \lambda_{ee} = \dfrac{h}{\sqrt{2 \pi \mu_{ee} k_{B} T} },
+   \\lambda_{ee} = \\dfrac{h}{\\sqrt{2 \\pi \\mu_{ee} k_{B} T} },
 
 References
 ----------
@@ -47,15 +47,17 @@ def update_params(potential, params):
     """
     # Do a bunch of checks
     # P3M algorithm only
-    assert potential.method == "P3M", 'QSP interaction can only be calculated using P3M algorithm.'
+    assert (
+        potential.method == "P3M"
+    ), "QSP interaction can only be calculated using P3M algorithm."
 
     # Check for neutrality
-    assert params.total_net_charge == 0, 'Total net charge is not zero.'
+    assert params.total_net_charge == 0, "Total net charge is not zero."
 
     # Default attributes
-    if not hasattr(potential, 'qsp_type'):
-        potential.qsp_type = 'Deutsch'
-    if not hasattr(potential, 'qsp_pauli'):
+    if not hasattr(potential, "qsp_type"):
+        potential.qsp_type = "Deutsch"
+    if not hasattr(potential, "qsp_pauli"):
         potential.qsp_pauli = True
 
     two_pi = 2.0 * np.pi
@@ -63,8 +65,11 @@ def update_params(potential, params):
     log2 = np.log(2.0)
 
     # Redefine ion temperatures and ion total number density
-    mask = params.species_names != 'e'
-    params.total_ion_temperature = params.species_concentrations[mask].transpose() * params.species_temperatures[mask]
+    mask = params.species_names != "e"
+    params.total_ion_temperature = (
+        params.species_concentrations[mask].transpose()
+        * params.species_temperatures[mask]
+    )
     params.ni = np.sum(params.species_num_dens[mask])
 
     # Calculate the total and ion Wigner-Seitz Radius from the total density
@@ -83,12 +88,16 @@ def update_params(potential, params):
 
             reduced = (m1 * m2) / (m1 + m2)
 
-            if name1 == 'e' or name2 == 'e':
+            if name1 == "e" or name2 == "e":
                 # Use electron temperature in e-e and e-i interactions
-                lambda_deB = np.sqrt(deBroglie_const / (reduced * params.electron_temperature))
+                lambda_deB = np.sqrt(
+                    deBroglie_const / (reduced * params.electron_temperature)
+                )
             else:
                 # Use ion temperature in i-i interactions only
-                lambda_deB = np.sqrt(deBroglie_const / (reduced * params.total_ion_temperature))
+                lambda_deB = np.sqrt(
+                    deBroglie_const / (reduced * params.total_ion_temperature)
+                )
 
             if name2 == name1:  # e-e
                 QSP_matrix[2, i, j] = log2 * params.kB * params.electron_temperature
@@ -107,14 +116,16 @@ def update_params(potential, params):
         potential.force = deutsch_force
         # Calculate the PP Force error from the e-e diffraction term only.
         params.pppm_pp_err = np.sqrt(two_pi * potential.matrix[1, 0, 0])
-        params.pppm_pp_err *= np.exp(- potential.rc * potential.matrix[1, 0, 0])
-        params.pppm_pp_err *= params.a_ws ** 2 * np.sqrt(params.total_num_ptcls / params.pbox_volume)
+        params.pppm_pp_err *= np.exp(-potential.rc * potential.matrix[1, 0, 0])
+        params.pppm_pp_err *= params.a_ws ** 2 * np.sqrt(
+            params.total_num_ptcls / params.pbox_volume
+        )
 
     elif potential.qsp_type.lower() == "kelbg":
         potential.force = kelbg_force
         # TODO: Calculate the PP Force error from the e-e diffraction term only.
         params.pppm_pp_err = np.sqrt(two_pi * potential.matrix[1, 0, 0])
-        params.pppm_pp_err *= np.exp(- potential.rc * potential.matrix[1, 0, 0])
+        params.pppm_pp_err *= np.exp(-potential.rc * potential.matrix[1, 0, 0])
 
 
 @njit
@@ -157,7 +168,9 @@ def deutsch_force(r, pot_matrix):
     # Ewald short-range potential and force terms
     U_ewald = A * mt.erfc(alpha * r) / r
     f_ewald = U_ewald / r  # 1/r derivative
-    f_ewald += A * (2.0 * alpha / np.sqrt(np.pi) ) * np.exp(- a2 * r2)/r  # erfc derivative
+    f_ewald += (
+        A * (2.0 * alpha / np.sqrt(np.pi)) * np.exp(-a2 * r2) / r
+    )  # erfc derivative
 
     # Diffraction potential and force term
     U_diff = -A * np.exp(-C * r) / r
@@ -214,14 +227,18 @@ def kelbg_force(r, pot_matrix):
     # Ewald short-range potential and force terms
     U_ewald = A * mt.erfc(alpha * r) / r
     f_ewald = U_ewald / r2  # 1/r derivative
-    f_ewald += A * (2.0 * alpha / np.sqrt(np.pi) / r2) * np.exp(- a2 * r2)  # erfc derivative
+    f_ewald += (
+        A * (2.0 * alpha / np.sqrt(np.pi) / r2) * np.exp(-a2 * r2)
+    )  # erfc derivative
 
     # Diffraction potential and force term
     U_diff = -A * np.exp(-C2 * r2 / np.pi) / r
     U_diff += A * C * mt.erfc(C * r / np.sqrt(np.pi))
 
-    f_diff = -A * (2.0 * C2 * r2 + np.pi) * np.exp(- C2 * r2 / np.pi) / (np.pi * r * r2)  # exp(r)/r derivative
-    f_diff += 2.0 * A * C2 * np.exp(- C2 * r2 / np.pi) / r / np.pi  # erfc derivative
+    f_diff = (
+        -A * (2.0 * C2 * r2 + np.pi) * np.exp(-C2 * r2 / np.pi) / (np.pi * r * r2)
+    )  # exp(r)/r derivative
+    f_diff += 2.0 * A * C2 * np.exp(-C2 * r2 / np.pi) / r / np.pi  # erfc derivative
 
     # Pauli Term
     U_pauli = D * np.exp(-F * r2)
